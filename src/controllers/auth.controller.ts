@@ -94,3 +94,27 @@ export const logout = async (req: Request, res: Response) => {
 
   return res.status(204).send({ message: "Logged out successfully" });
 };
+
+export const me = async (req: Request, res: Response) => {
+  try {
+    const userId = req.user?.id;
+
+    if (!userId) {
+      return res.status(401).json({ error: "Unauthenticated" });
+    }
+
+    const { rows, rowCount } = await pool.query(
+      "SELECT id, email, role FROM users WHERE id = $1",
+      [userId]
+    );
+
+    if (!rowCount) {
+      return res.status(404).json({ error: "User not found" });
+    }
+
+    return res.status(200).json(rows[0]);
+  } catch (error) {
+    console.error("GET /auth/me error:", error);
+    return res.status(500).json({ error: "Internal server error" });
+  }
+};

@@ -18,13 +18,14 @@ export function requireAuth(req: Request, res: Response, next: NextFunction) {
 
   try {
     const payload = jwt.verify(token, JWT_SECRET) as {
-      sub: string;
+      id: string;
       role: string;
       email: string;
     };
 
+    // só é possivel devido a declaração de módulo em src/types/express.d.ts
     req.user = {
-      id: payload.sub,
+      id: payload.id,
       role: payload.role,
       email: payload.email,
     };

@@ -15,12 +15,12 @@ export const refreshTokenController = async (req: Request, res: Response) => {
     const payload = jwt.verify(
       refreshToken,
       process.env.REFRESH_TOKEN_SECRET as string
-    ) as { sub: string };
+    ) as { id: string };
 
     // verificar se o refresh token existe no banco
     const result = await pool.query(
       "SELECT id FROM users WHERE id = $1 AND refresh_token = $2",
-      [payload.sub, refreshToken]
+      [payload.id, refreshToken]
     );
 
     // se não existir, retornar erro
@@ -30,7 +30,7 @@ export const refreshTokenController = async (req: Request, res: Response) => {
 
     // gerar um novo access token
     const newAccessToken = generateAccessToken({
-      id: payload.sub,
+      id: payload.id,
     });
 
     return res.json({ accessToken: newAccessToken });
