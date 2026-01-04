@@ -171,4 +171,4 @@ CREATE TABLE users (
 
 ## Fluxo de Autenticação
 
-![Fluxograma de autenticação](docs/images/fluxo-auth.png)
+![Fluxograma de autenticação](src/docs/images/fluxo-auth.png)
