@@ -57,7 +57,9 @@ export const login = async (req: Request, res: Response) => {
 };
 
 export const register = async (req: Request, res: Response) => {
-  const { email, password, role: user } = req.body;
+  const { email, password } = req.body; // não le role aqui porque só admin pode setar
+
+  const role = "user"; // default role
 
   if (!email || !password) {
     return res.status(400).json({ error: "Email and password are required!" });
@@ -79,7 +81,7 @@ export const register = async (req: Request, res: Response) => {
   // Inserir o novo usuário no banco de dados
   await pool.query(
     "INSERT INTO users (email, password_hash, role) VALUES ($1, $2, $3)",
-    [email, password_hash, user || "user"]
+    [email, password_hash, role]
   );
 
   return res.status(201).json({ message: "User registered successfully!" });
