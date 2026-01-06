@@ -10,7 +10,14 @@ export function requireAuth(req: Request, res: Response, next: NextFunction) {
     return res.status(401).json({ error: "Missing authorization header" });
   }
 
-  const [, token] = authHeader.split(" ");
+  const [type, token] = authHeader.split(" ");
+
+  // verificação de formato
+  if (type !== "Bearer") {
+    return res
+      .status(401)
+      .json({ error: "Invalid authorization header format" });
+  }
 
   if (!token) {
     return res.status(401).json({ error: "Missing token" });
