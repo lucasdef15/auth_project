@@ -3,6 +3,8 @@ import jwt from "jsonwebtoken";
 import { generateAccessToken } from "../../services/token.service.js";
 import { pool } from "../../db/index.js";
 
+// controlador para refresh token rotation
+
 export const refreshTokenController = async (req: Request, res: Response) => {
   const { refreshToken } = req.body;
 
