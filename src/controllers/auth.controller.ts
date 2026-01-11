@@ -126,20 +126,32 @@ export const me = async (req: Request, res: Response) => {
       return res.status(404).json({ error: "User not found" });
     }
 
-    const session = await pool.query(
-      "SELECT * FROM refresh_tokens WHERE user_id = $1 AND revoked_at IS NULL",
+    // buscar sessões ativas (refresh tokens não revogados) e ordená-las pela data de criação
+    const sessions = await pool.query(
+      `
+  SELECT id, created_at
+  FROM refresh_tokens
+  WHERE user_id = $1 AND revoked_at IS NULL
+  ORDER BY created_at DESC
+  `,
       [userId]
     );
 
+    // pegar a sessão mais recente
+    const currentSession = sessions.rows[0] ?? null;
+
+    // retornar dados do usuário junto com a sessão atual e o total de sessões ativas
     return res.status(200).json({
       id: rows[0].id,
       email: rows[0].email,
       role: rows[0].role,
-      session: {
-        id: session.rows[0].id,
-        created_at: session.rows[0].created_at,
-        totalActiveSessions: session.rowCount,
-      },
+      session: currentSession
+        ? {
+            id: currentSession.id,
+            created_at: currentSession.created_at,
+            totalActiveSessions: sessions.rowCount,
+          }
+        : null,
     });
   } catch (error) {
     console.error("GET /auth/me error:", error);
