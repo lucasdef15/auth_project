@@ -126,7 +126,21 @@ export const me = async (req: Request, res: Response) => {
       return res.status(404).json({ error: "User not found" });
     }
 
-    return res.status(200).json(rows[0]);
+    const session = await pool.query(
+      "SELECT * FROM refresh_tokens WHERE user_id = $1 AND revoked_at IS NULL",
+      [userId]
+    );
+
+    return res.status(200).json({
+      id: rows[0].id,
+      email: rows[0].email,
+      role: rows[0].role,
+      session: {
+        id: session.rows[0].id,
+        created_at: session.rows[0].created_at,
+        totalActiveSessions: session.rowCount,
+      },
+    });
   } catch (error) {
     console.error("GET /auth/me error:", error);
     return res.status(500).json({ error: "Internal server error" });
