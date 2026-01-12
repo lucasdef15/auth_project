@@ -14,6 +14,7 @@ router.post("/logout", requireAuth, logout);
 
 router.post("/refresh", refreshTokenController);
 
-router.get("/me", requireAuth, requireRole(["admin"]), me);
+// router.get("/me", requireAuth, requireRole(["admin"]), me);
+router.get("/me", requireAuth, me);
 
 export default router;

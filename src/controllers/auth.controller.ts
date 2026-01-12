@@ -10,36 +10,42 @@ import { randomUUID } from "crypto";
 export const login = async (req: Request, res: Response) => {
   const { email, password } = req.body;
 
-  // validação básica
   if (!email || !password) {
     return res.status(400).json({
       error: "Email and password are required",
     });
   }
 
-  // buscar usuário no banco
   const result = await pool.query(
     "SELECT id, email, password_hash, role FROM users WHERE email = $1",
     [email]
   );
 
-  // usuário não encontrado
   if (result.rowCount === 0) {
     return res.status(401).json({ error: "Invalid email or password" });
   }
 
-  // usuário encontrado
   const user = result.rows[0];
 
-  // verificar senha
   const passwordMatch = await comparePassword(password, user.password_hash);
 
-  // senha incorreta
   if (!passwordMatch) {
     return res.status(401).json({ error: "Invalid credentials" });
   }
 
-  // gerar tokens
+  // 🔥 REVOGA TODAS AS SESSÕES ANTES DO LOGIN
+  await pool.query(
+    `
+    UPDATE refresh_tokens
+    SET revoked_at = NOW()
+    WHERE user_id = $1
+      AND revoked_at IS NULL
+      AND expires_at > NOW()
+    `,
+    [user.id]
+  );
+
+  // gera tokens
   const accessToken = generateAccessToken({
     id: user.id,
     role: user.role,
@@ -51,7 +57,7 @@ export const login = async (req: Request, res: Response) => {
 
   const refreshTokenId = randomUUID();
 
-  // armazenar refresh token no banco
+  // cria nova sessão
   await pool.query(
     `
     INSERT INTO refresh_tokens (id, user_id, token, expires_at)
@@ -60,9 +66,17 @@ export const login = async (req: Request, res: Response) => {
     [refreshTokenId, user.id, refreshToken]
   );
 
-  return res.json({
+  // cookie httpOnly
+  res.cookie("refreshToken", refreshToken, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax",
+    path: "/auth/refresh",
+    maxAge: 7 * 24 * 60 * 60 * 1000,
+  });
+
+  return res.status(200).json({
     accessToken,
-    refreshToken,
   });
 };
 
@@ -117,34 +131,34 @@ export const me = async (req: Request, res: Response) => {
       return res.status(401).json({ error: "Unauthenticated" });
     }
 
-    const { rows, rowCount } = await pool.query(
+    const userResult = await pool.query(
       "SELECT id, email, role FROM users WHERE id = $1",
       [userId]
     );
 
-    if (!rowCount) {
+    if (userResult.rowCount === 0) {
       return res.status(404).json({ error: "User not found" });
     }
 
-    // buscar sessões ativas (refresh tokens não revogados) e ordená-las pela data de criação
+    // busca sessões realmente ativas
     const sessions = await pool.query(
       `
-  SELECT id, created_at
-  FROM refresh_tokens
-  WHERE user_id = $1 AND revoked_at IS NULL
-  ORDER BY created_at DESC
-  `,
+      SELECT id, created_at
+      FROM refresh_tokens
+      WHERE user_id = $1
+        AND revoked_at IS NULL
+        AND expires_at > NOW()
+      ORDER BY created_at DESC
+      `,
       [userId]
     );
 
-    // pegar a sessão mais recente
     const currentSession = sessions.rows[0] ?? null;
 
-    // retornar dados do usuário junto com a sessão atual e o total de sessões ativas
     return res.status(200).json({
-      id: rows[0].id,
-      email: rows[0].email,
-      role: rows[0].role,
+      id: userResult.rows[0].id,
+      email: userResult.rows[0].email,
+      role: userResult.rows[0].role,
       session: currentSession
         ? {
             id: currentSession.id,
