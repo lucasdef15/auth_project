@@ -17,12 +17,12 @@ export const refreshTokenController = async (req: Request, res: Response) => {
   try {
     const payload = jwt.verify(
       refreshToken,
-      process.env.REFRESH_TOKEN_SECRET as string
+      process.env.REFRESH_TOKEN_SECRET as string,
     ) as { id: string };
 
     const storedToken = await pool.query(
       `SELECT * FROM refresh_tokens WHERE token = $1`,
-      [refreshToken]
+      [refreshToken],
     );
 
     if (storedToken.rowCount === 0) {
@@ -53,7 +53,7 @@ export const refreshTokenController = async (req: Request, res: Response) => {
       SET revoked_at = NOW(), replaced_by_token = $1
       WHERE id = $2
       `,
-      [newRefreshTokenId, tokenData.id]
+      [newRefreshTokenId, tokenData.id],
     );
 
     await pool.query(
@@ -61,12 +61,12 @@ export const refreshTokenController = async (req: Request, res: Response) => {
       INSERT INTO refresh_tokens (id, user_id, token, expires_at)
       VALUES ($1, $2, $3, NOW() + INTERVAL '7 days')
       `,
-      [newRefreshTokenId, payload.id, newRefreshToken]
+      [newRefreshTokenId, payload.id, newRefreshToken],
     );
 
     await pool.query("COMMIT");
 
-    // 🔐 Atualiza cookie HTTP-only
+    // Atualiza cookie HTTP-only
     res.cookie("refreshToken", newRefreshToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
