@@ -1,6 +1,26 @@
 import type { Request, Response } from "express";
 import { pool } from "../../db/index.js";
 
+export const getAllHospitals = async (_req: Request, res: Response) => {
+  try {
+    const result = await pool.query(`
+      SELECT
+        id,
+        name,
+        cnpj
+      FROM hospitals
+      ORDER BY name ASC
+    `);
+
+    return res.json(result.rows);
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({
+      message: "Erro ao listar hospitais",
+    });
+  }
+};
+
 export const getHospitalInfo = async (req: Request, res: Response) => {
   const hospitalId = req.params.id;
 
