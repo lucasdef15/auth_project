@@ -1,10 +1,10 @@
 import type { Request, Response } from "express";
-import { pool } from "../db/index.js";
-import { comparePassword, hashPassword } from "../utils/hash.js";
+import { pool } from "../../db/index.js";
+import { comparePassword, hashPassword } from "../../utils/hash.js";
 import {
   generateAccessToken,
   generateRefreshToken,
-} from "../services/token.service.js";
+} from "../../services/token.service.js";
 import { randomUUID } from "crypto";
 
 export const login = async (req: Request, res: Response) => {
@@ -18,7 +18,7 @@ export const login = async (req: Request, res: Response) => {
 
   const result = await pool.query(
     "SELECT id, email, password_hash, role FROM users WHERE email = $1",
-    [email]
+    [email],
   );
 
   if (result.rowCount === 0) {
@@ -42,7 +42,7 @@ export const login = async (req: Request, res: Response) => {
       AND revoked_at IS NULL
       AND expires_at > NOW()
     `,
-    [user.id]
+    [user.id],
   );
 
   // gera tokens
@@ -63,7 +63,7 @@ export const login = async (req: Request, res: Response) => {
     INSERT INTO refresh_tokens (id, user_id, token, expires_at)
     VALUES ($1, $2, $3, NOW() + INTERVAL '7 days')
     `,
-    [refreshTokenId, user.id, refreshToken]
+    [refreshTokenId, user.id, refreshToken],
   );
 
   // cookie httpOnly
@@ -90,7 +90,7 @@ export const register = async (req: Request, res: Response) => {
 
   const existingUser = await pool.query(
     "SELECT id FROM users WHERE email = $1",
-    [email]
+    [email],
   );
 
   if (existingUser.rowCount! > 0) {
@@ -101,7 +101,7 @@ export const register = async (req: Request, res: Response) => {
 
   await pool.query(
     "INSERT INTO users (email, password_hash, role) VALUES ($1, $2, $3)",
-    [email, password_hash, role]
+    [email, password_hash, role],
   );
 
   return res.status(201).json({ message: "User registered successfully!" });
@@ -117,7 +117,7 @@ export const logout = async (req: Request, res: Response) => {
     SET revoked_at = NOW()
     WHERE user_id = $1 AND revoked_at IS NULL
     `,
-    [userId]
+    [userId],
   );
 
   return res.status(204).send();
@@ -133,7 +133,7 @@ export const me = async (req: Request, res: Response) => {
 
     const userResult = await pool.query(
       "SELECT id, email, role FROM users WHERE id = $1",
-      [userId]
+      [userId],
     );
 
     if (userResult.rowCount === 0) {
@@ -150,7 +150,7 @@ export const me = async (req: Request, res: Response) => {
         AND expires_at > NOW()
       ORDER BY created_at DESC
       `,
-      [userId]
+      [userId],
     );
 
     const currentSession = sessions.rows[0] ?? null;

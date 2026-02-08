@@ -1,5 +1,10 @@
 import { Router } from "express";
-import { login, register, logout, me } from "../controllers/auth.controller.js";
+import {
+  login,
+  register,
+  logout,
+  me,
+} from "../controllers/auth/auth.controller.js";
 import { refreshTokenController } from "../controllers/auth/refresh.controller.js";
 import { requireAuth } from "../middlewares/auth.middleware.js";
 import { requireRole } from "../middlewares/role.middleware.js";
